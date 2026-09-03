@@ -20,3 +20,4 @@ classifiers = [
 
 [project.scripts]
 alarm = "src.alarm_clock.main:main"
+pyalarm = "src.alarm_clock.main:main"
