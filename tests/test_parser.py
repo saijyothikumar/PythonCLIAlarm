@@ -88,6 +88,22 @@ class TestTimeParser(unittest.TestCase):
         self.assertEqual(target_noon, datetime(2026, 9, 4, 12, 0, 0))
         self.assertTrue(is_tom_noon)
 
+        # Word 'noon'
+        target_w_noon, is_tom_w_noon = parse_clock_time("noon", now=self.fixed_now)
+        self.assertEqual(target_w_noon, datetime(2026, 9, 4, 12, 0, 0))
+        self.assertTrue(is_tom_w_noon)
+
+        # Word 'midnight'
+        target_w_mid, is_tom_w_mid = parse_clock_time("midnight", now=self.fixed_now)
+        self.assertEqual(target_w_mid, datetime(2026, 9, 4, 0, 0, 0))
+        self.assertTrue(is_tom_w_mid)
+
+    def test_parse_duration_with_in_prefix(self):
+        delta = parse_duration("in 15 minutes")
+        self.assertEqual(delta, timedelta(minutes=15))
+        delta2 = parse_duration("in 30s")
+        self.assertEqual(delta2, timedelta(seconds=30))
+
     def test_parse_invalid_clock_times(self):
         invalid_cases = ["25:00", "12:65", "13pm", "invalid", ""]
         for case in invalid_cases:

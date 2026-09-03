@@ -48,19 +48,38 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 2. Preset Subcommands
     preset_manager = PresetManager()
     if getattr(args, "subcommand", None) == "save":
+        name = args.name.strip()
+        if not name or not name.replace("-", "").replace("_", "").isalnum():
+            print(f"{RED}Error:{RESET} Preset name must contain alphanumeric characters (e.g. 'standup', 'tea_time').")
+            return 1
+
+        if args.snooze <= 0:
+            print(f"{RED}Error:{RESET} Snooze duration must be a positive integer in minutes (e.g. 5, 10).")
+            return 1
+
+        if args.pre_alert:
+            try:
+                delta = parse_duration(args.pre_alert)
+                if delta.total_seconds() <= 0:
+                    print(f"{RED}Error:{RESET} Pre-alert duration must be greater than zero seconds.")
+                    return 1
+            except TimeParseError as err:
+                print(f"{RED}Error:{RESET} Invalid pre-alert duration: {err}")
+                return 1
+
         try:
             # Validate time format before saving
             parse_alarm_target(args.time)
             preset_manager.save_preset(
-                name=args.name,
+                name=name,
                 time_str=args.time,
                 message=args.message,
                 pattern=args.pattern,
                 snooze=args.snooze,
                 pre_alert=args.pre_alert,
             )
-            print(f"\n{GREEN}✓ Preset '{args.name}' saved successfully!{RESET}")
-            print(f"  Run anytime with: {BOLD}alarm run {args.name}{RESET}\n")
+            print(f"\n{GREEN}✓ Preset '{name}' saved successfully!{RESET}")
+            print(f"  Run anytime with: {BOLD}alarm run {name}{RESET}\n")
             return 0
         except TimeParseError as err:
             print(f"{RED}Error:{RESET} Cannot save invalid time '{args.time}': {err}")
@@ -136,12 +155,21 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"{RED}Error:{RESET} {err}")
         return 1
 
+    # Snooze validation
+    if args.snooze_minutes <= 0:
+        print(f"{RED}Error:{RESET} Snooze duration must be a positive integer in minutes (greater than 0).")
+        return 1
+
     # Pre-alert validation
     pre_alert_seconds = None
     if args.pre_alert:
         try:
-            pre_alert_seconds = int(parse_duration(args.pre_alert).total_seconds())
-            total_duration = (target - target.now()).total_seconds()
+            delta = parse_duration(args.pre_alert)
+            pre_alert_seconds = int(delta.total_seconds())
+            if pre_alert_seconds <= 0:
+                print(f"{RED}Error:{RESET} Pre-alert duration must be greater than zero seconds.")
+                return 1
+            total_duration = (target - datetime.now()).total_seconds()
             if pre_alert_seconds >= total_duration:
                 print(f"{YELLOW}Warning:{RESET} Pre-alert duration ({args.pre_alert}) exceeds alarm time. Heads-up will fire immediately.")
         except TimeParseError as err:

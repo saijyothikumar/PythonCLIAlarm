@@ -57,6 +57,10 @@ def parse_duration(text: str) -> timedelta:
     if not cleaned:
         raise TimeParseError("Duration string cannot be empty.")
 
+    # Strip conversational prefix like "in " (e.g. "in 15m", "in 10 minutes")
+    if cleaned.lower().startswith("in "):
+        cleaned = cleaned[3:].strip()
+
     match = _DURATION_REGEX.match(cleaned) or _SHORT_DURATION_REGEX.match(cleaned)
     if not match or not any(match.groupdict().values()):
         raise TimeParseError(
@@ -78,13 +82,13 @@ def parse_duration(text: str) -> timedelta:
 
 def parse_clock_time(text: str, now: Optional[datetime] = None) -> Tuple[datetime, bool]:
     """
-    Parse a 12-hour or 24-hour clock time into a target datetime.
+    Parse a 12-hour, 24-hour, or named clock time into a target datetime.
     
     If the specified time is earlier than or equal to current time, it automatically
     rolls over to tomorrow (+1 day).
     
     Args:
-        text: Time string like '14:30', '7:30am', '7pm', '07:15:30'.
+        text: Time string like '14:30', '7:30am', '7pm', 'noon', 'midnight'.
         now: Reference datetime (defaults to datetime.now()).
         
     Returns:
@@ -99,6 +103,21 @@ def parse_clock_time(text: str, now: Optional[datetime] = None) -> Tuple[datetim
 
     if now is None:
         now = datetime.now()
+
+    # Support natural named times
+    lowered = cleaned.lower()
+    if lowered == "noon":
+        target = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        is_tomorrow = target <= now
+        if is_tomorrow:
+            target += timedelta(days=1)
+        return target, is_tomorrow
+    elif lowered == "midnight":
+        target = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        is_tomorrow = target <= now
+        if is_tomorrow:
+            target += timedelta(days=1)
+        return target, is_tomorrow
 
     hour: int
     minute: int

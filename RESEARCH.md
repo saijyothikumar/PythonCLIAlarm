@@ -1,7 +1,7 @@
 # Technical Research & Feasibility Analysis
 
 **Project:** Python CLI Alarm Clock  
-**Author:** Senior Software Engineer Candidate  
+**Author:** Sai Surla
 **Date:** September 2026  
 
 ---
