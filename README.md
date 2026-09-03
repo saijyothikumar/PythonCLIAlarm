@@ -126,14 +126,16 @@ python build_standalone.py
 * The output is placed in `dist/alarm.exe` (or `dist/alarm`).
 * This binary can be copied to **any** computer and run directly without needing Python or any runtime installed!
 
-### 3. Install Globally (Run `alarm` Command from Any Directory)
-To invoke `alarm` from any directory in your terminal:
+### 3. Install Globally (Run `alarm` or `pyalarm` from Any Directory)
+To invoke the CLI from any directory in your terminal:
 ```bash
 pip install -e .
 ```
-Now run from anywhere:
+Now run from anywhere using either command:
 ```bash
 alarm 15m -m "Tea Break"
+# Or using the collision-proof alias:
+pyalarm 15m -m "Tea Break"
 alarm save standup 09:30 -p digital
 ```
 
