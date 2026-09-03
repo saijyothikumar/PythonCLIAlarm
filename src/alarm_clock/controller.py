@@ -16,9 +16,9 @@ import threading
 import time
 from typing import Optional
 
-from src.alarm_clock.engine import AlarmConfig, AlarmEngine, AlarmStatus
-from src.alarm_clock.sound import SoundPlayer
-from src.alarm_clock.ui import TerminalUI, show_cursor, hide_cursor
+from .engine import AlarmConfig, AlarmEngine, AlarmStatus
+from .sound import SoundPlayer
+from .ui import TerminalUI, show_cursor, hide_cursor
 
 
 class AlarmController:

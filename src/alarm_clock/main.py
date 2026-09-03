@@ -12,14 +12,14 @@ import signal
 import sys
 from typing import List, Optional
 
-from src.alarm_clock.cli import parse_cli_args, run_sound_diagnostic
-from src.alarm_clock.controller import AlarmController
-from src.alarm_clock.engine import AlarmConfig
-from src.alarm_clock.parser import parse_alarm_target, parse_duration, TimeParseError
-from src.alarm_clock.presets import PresetManager
-from src.alarm_clock.sound import AudioValidationError, validate_audio_slice
-from src.alarm_clock.ui import BOLD, CYAN, DIM, GREEN, RED, RESET, YELLOW, init_terminal, show_cursor
-from src.alarm_clock.wizard import run_interactive_wizard
+from .cli import parse_cli_args, run_sound_diagnostic
+from .controller import AlarmController
+from .engine import AlarmConfig
+from .parser import parse_alarm_target, parse_duration, TimeParseError
+from .presets import PresetManager
+from .sound import AudioValidationError, validate_audio_slice
+from .ui import BOLD, CYAN, DIM, GREEN, RED, RESET, YELLOW, init_terminal, show_cursor
+from .wizard import run_interactive_wizard
 
 
 def setup_signal_handlers() -> None:

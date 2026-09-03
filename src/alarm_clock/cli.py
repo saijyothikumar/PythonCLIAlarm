@@ -13,7 +13,7 @@ import argparse
 import sys
 from typing import List, Optional
 
-from src.alarm_clock.sound import BUILTIN_PATTERNS, SoundPlayer
+from .sound import BUILTIN_PATTERNS, SoundPlayer
 
 HELP_BANNER = """
 ============================================================

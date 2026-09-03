@@ -9,12 +9,12 @@ from datetime import datetime
 import sys
 from typing import Dict, Optional, Tuple
 
-from src.alarm_clock.cli import run_sound_diagnostic
-from src.alarm_clock.engine import AlarmConfig
-from src.alarm_clock.parser import parse_alarm_target, parse_duration, TimeParseError
-from src.alarm_clock.presets import PresetManager
-from src.alarm_clock.sound import BUILTIN_PATTERNS
-from src.alarm_clock.ui import BOLD, CYAN, DIM, RED, RESET, YELLOW, init_terminal
+from .cli import run_sound_diagnostic
+from .engine import AlarmConfig
+from .parser import parse_alarm_target, parse_duration, TimeParseError
+from .presets import PresetManager
+from .sound import BUILTIN_PATTERNS
+from .ui import BOLD, CYAN, DIM, RED, RESET, YELLOW, init_terminal
 
 PATTERN_INDEX: Dict[str, str] = {
     "1": "chime",
