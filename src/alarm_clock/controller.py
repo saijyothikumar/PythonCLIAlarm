@@ -51,8 +51,8 @@ class AlarmController:
     def _handle_pre_alert(self, message: str, remaining_seconds: float) -> None:
         """Called when pre-alarm threshold is reached."""
         self.ui.show_pre_alert_banner(message, remaining_seconds)
-        # Emit a single subtle audio tone
-        self.player.emit_tone(659, 200)
+        # Emit a subtle pre-alert tone asynchronously so countdown timing stays exact
+        threading.Thread(target=lambda: self.player.emit_tone(659, 150), daemon=True).start()
 
     def _audio_loop(self) -> None:
         """Background thread worker to loop alarm audio until stopped."""
@@ -90,54 +90,78 @@ class AlarmController:
 
     def _read_user_alarm_action(self, timeout_sec: float = 60.0) -> str:
         """
-        Wait for user input to Snooze [s], Dismiss [d/Enter], or Quit [q].
+        Wait for user input to Snooze [s], Dismiss [d/Enter/Space/any key], or Quit [q].
         Falls back to auto-silence if no key is pressed within timeout_sec.
+        Immediately stops audio ringer upon receiving ANY input.
         """
         start_time = time.time()
+        result_holder: list = []
 
-        # On Windows, try non-blocking single keypress check with msvcrt
+        # Background listener for standard input (handles line-buffered terminals, Enter key, etc.)
+        def _stdin_worker():
+            try:
+                line = sys.stdin.readline()
+                if line:
+                    self._stop_audio_ringer()
+                    clean = line.strip().lower()
+                    if clean == "s":
+                        result_holder.append("snooze")
+                    elif clean == "q":
+                        result_holder.append("quit")
+                    else:
+                        result_holder.append("dismiss")
+            except Exception:
+                pass
+
+        try:
+            stdin_thread = threading.Thread(target=_stdin_worker, daemon=True)
+            stdin_thread.start()
+        except Exception:
+            pass
+
+        # Windows direct console keystroke listener via msvcrt
+        msvcrt_module = None
         if os.name == "nt":
             try:
                 import msvcrt
-                # Flush any stale keystrokes entered before the alarm started ringing
-                while msvcrt.kbhit():
-                    msvcrt.getch()
-
-                while (time.time() - start_time) < timeout_sec:
-                    if msvcrt.kbhit():
-                        ch = msvcrt.getch()
-                        # Discard Windows multi-byte scan code prefixes (arrows, function keys)
-                        if ch in (b"\x00", b"\xe0") and msvcrt.kbhit():
-                            msvcrt.getch()
-                            continue
-                        try:
-                            decoded = ch.decode("utf-8", errors="ignore").lower()
-                        except Exception:
-                            decoded = ""
-                        if decoded == "s":
-                            return "snooze"
-                        elif decoded in ("d", "\r", "\n", " "):
-                            return "dismiss"
-                        elif decoded == "q":
-                            return "quit"
-                    time.sleep(0.01)
-                return "auto_snooze"
+                msvcrt_module = msvcrt
+                while msvcrt_module.kbhit():
+                    msvcrt_module.getch()
             except ImportError:
                 pass
 
-        # Cross-platform fallback using standard input
-        try:
-            show_cursor()
-            choice = input("Enter action [s/d/q]: ").strip().lower()
-            if choice == "s":
-                return "snooze"
-            elif choice in ("d", ""):
-                return "dismiss"
-            elif choice == "q":
-                return "quit"
-            return "dismiss"
-        except (KeyboardInterrupt, EOFError):
-            return "quit"
+        while (time.time() - start_time) < timeout_sec:
+            # 1. Check if stdin thread caught input
+            if result_holder:
+                self._stop_audio_ringer()
+                return result_holder[0]
+
+            # 2. Check if msvcrt caught a raw keystroke
+            if msvcrt_module and msvcrt_module.kbhit():
+                try:
+                    ch = msvcrt_module.getch()
+                    # Discard multi-byte prefixes (arrow keys, function keys)
+                    if ch in (b"\x00", b"\xe0") and msvcrt_module.kbhit():
+                        msvcrt_module.getch()
+                        continue
+                    # IMMEDIATELY halt audio at the microsecond of key detection!
+                    self._stop_audio_ringer()
+                    decoded = ch.decode("utf-8", errors="ignore").lower()
+                except Exception:
+                    decoded = ""
+
+                if decoded == "s":
+                    return "snooze"
+                elif decoded == "q":
+                    return "quit"
+                else:
+                    # ANY other key (Enter, Space, Esc, d, etc.) dismisses instantly!
+                    return "dismiss"
+
+            time.sleep(0.01)
+
+        self._stop_audio_ringer()
+        return "auto_snooze"
 
     def _handle_trigger(self, config: AlarmConfig, missed_by: float) -> None:
         """Triggered when alarm time is reached."""

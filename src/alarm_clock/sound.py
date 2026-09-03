@@ -127,8 +127,11 @@ class SoundPlayer:
             except ImportError:
                 self._has_winsound = False
 
-    def emit_tone(self, freq_hz: int, duration_ms: int) -> None:
+    def emit_tone(self, freq_hz: int, duration_ms: int, stop_event: Optional[threading.Event] = None) -> None:
         """Emit a synthetic tone of specified frequency and duration."""
+        if stop_event and stop_event.is_set():
+            return
+
         if self._has_winsound and freq_hz > 0:
             try:
                 self._winsound.Beep(freq_hz, duration_ms)
@@ -136,10 +139,20 @@ class SoundPlayer:
             except Exception:
                 pass
 
-        # Fallback for non-Windows or if winsound fails: terminal bell
-        sys.stdout.write("\a")
-        sys.stdout.flush()
-        time.sleep(duration_ms / 1000.0)
+        if freq_hz == 0:
+            # Explicit ASCII terminal bell request
+            sys.stdout.write("\a")
+            sys.stdout.flush()
+            if stop_event:
+                stop_event.wait(duration_ms / 1000.0)
+            else:
+                time.sleep(duration_ms / 1000.0)
+        else:
+            # Hardware tone was unavailable: sleep for duration without spamming \a
+            if stop_event:
+                stop_event.wait(duration_ms / 1000.0)
+            else:
+                time.sleep(duration_ms / 1000.0)
 
     def stop(self) -> None:
         """Immediately purge and halt all active OS sound output."""
@@ -161,11 +174,13 @@ class SoundPlayer:
                 break
 
             if freq == 0:
-                # Terminal bell
+                # Explicit terminal bell request
                 sys.stdout.write("\a")
                 sys.stdout.flush()
+                if stop_event and stop_event.wait(dur_ms / 1000.0):
+                    break
             else:
-                self.emit_tone(freq, dur_ms)
+                self.emit_tone(freq, dur_ms, stop_event=stop_event)
 
             if stop_event and stop_event.is_set():
                 break

@@ -115,19 +115,24 @@ class AlarmEngine:
             if (
                 self.config.pre_alert_seconds
                 and not self._pre_alert_fired
-                and remaining_seconds <= self.config.pre_alert_seconds
+                and remaining_seconds <= (self.config.pre_alert_seconds + 0.05)
             ):
                 self._pre_alert_fired = True
                 self.status = AlarmStatus.PRE_ALERT
                 if self.on_pre_alert:
-                    self.on_pre_alert(self.config.message, remaining_seconds)
+                    self.on_pre_alert(self.config.message, self.config.pre_alert_seconds)
 
             # 4. Tick callback
             if self.on_tick:
                 self.on_tick(remaining_seconds, self.config.target_time, self.status)
 
-            # 5. Adaptive sleep (min 0.5s to keep CPU usage < 0.1%, but never sleep past target)
-            sleep_time = min(0.5, max(0.05, remaining_seconds))
+            # 5. High-precision adaptive sleep: never overshoot target or pre-alert boundary
+            sleep_time = min(0.2, max(0.01, remaining_seconds))
+            if self.config.pre_alert_seconds and not self._pre_alert_fired:
+                time_to_pre = remaining_seconds - self.config.pre_alert_seconds
+                if time_to_pre > 0:
+                    sleep_time = min(sleep_time, max(0.01, time_to_pre))
+
             time.sleep(sleep_time)
 
         return self.status

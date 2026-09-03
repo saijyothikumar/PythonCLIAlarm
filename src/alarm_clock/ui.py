@@ -27,9 +27,20 @@ CLEAR_LINE = "\033[2K\r"
 
 
 def init_terminal() -> None:
-    """Enable ANSI virtual terminal processing and ensure UTF-8 output on Windows."""
+    """Enable ANSI virtual terminal processing, UTF-8 output, and disable QuickEdit freeze on Windows."""
     if os.name == "nt":
         os.system("")  # Activates VT100 processing in Windows 10/11 CMD / PowerShell
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            h_in = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(h_in, ctypes.byref(mode)):
+                # Disable ENABLE_QUICK_EDIT_MODE (0x0040) to prevent mouse clicks from freezing execution
+                new_mode = (mode.value & ~0x0040) | 0x0080
+                kernel32.SetConsoleMode(h_in, new_mode)
+        except Exception:
+            pass
     try:
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -59,7 +70,7 @@ def show_cursor() -> None:
 
 def format_duration(seconds: float) -> str:
     """Format total seconds into HH:MM:SS string."""
-    total_secs = max(0, int(seconds))
+    total_secs = max(0, int(round(seconds)))
     mins, secs = divmod(total_secs, 60)
     hours, mins = divmod(mins, 60)
     return f"{hours:02d}:{mins:02d}:{secs:02d}"
