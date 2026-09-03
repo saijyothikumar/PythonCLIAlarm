@@ -141,10 +141,18 @@ class SoundPlayer:
         sys.stdout.flush()
         time.sleep(duration_ms / 1000.0)
 
+    def stop(self) -> None:
+        """Immediately purge and halt all active OS sound output."""
+        if self.os_type == "Windows" and self._has_winsound:
+            try:
+                self._winsound.PlaySound(None, self._winsound.SND_PURGE)
+            except Exception:
+                pass
+
     def play_pattern_cycle(self, pattern_name: str = "chime", stop_event: Optional[threading.Event] = None) -> None:
         """
         Play a single cycle of a built-in sound pattern.
-        Checks stop_event between notes to allow immediate cancellation.
+        Checks stop_event between notes and during pauses for zero-latency cancellation.
         """
         tones = BUILTIN_PATTERNS.get(pattern_name.lower(), BUILTIN_PATTERNS["chime"])
         
@@ -159,8 +167,15 @@ class SoundPlayer:
             else:
                 self.emit_tone(freq, dur_ms)
 
+            if stop_event and stop_event.is_set():
+                break
+
             if pause_ms > 0:
-                time.sleep(pause_ms / 1000.0)
+                if stop_event:
+                    if stop_event.wait(pause_ms / 1000.0):
+                        break
+                else:
+                    time.sleep(pause_ms / 1000.0)
 
     def play_file(self, file_path: str, duration_sec: Optional[float] = None, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -177,12 +192,17 @@ class SoundPlayer:
                 start_t = time.time()
                 while True:
                     if stop_event and stop_event.is_set():
-                        self._winsound.PlaySound(None, self._winsound.SND_PURGE)
+                        self.stop()
                         break
                     if duration_sec and (time.time() - start_t) >= duration_sec:
-                        self._winsound.PlaySound(None, self._winsound.SND_PURGE)
+                        self.stop()
                         break
-                    time.sleep(0.1)
+                    if stop_event:
+                        if stop_event.wait(0.05):
+                            self.stop()
+                            break
+                    else:
+                        time.sleep(0.05)
                 return
             except Exception:
                 pass
@@ -205,7 +225,12 @@ class SoundPlayer:
                     if duration_sec and (time.time() - start_t) >= duration_sec:
                         proc.terminate()
                         break
-                    time.sleep(0.1)
+                    if stop_event:
+                        if stop_event.wait(0.05):
+                            proc.terminate()
+                            break
+                    else:
+                        time.sleep(0.05)
                 return
             except Exception:
                 pass

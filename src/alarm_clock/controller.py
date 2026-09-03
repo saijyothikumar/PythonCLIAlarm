@@ -69,8 +69,9 @@ class AlarmController:
             else:
                 self.player.play_pattern_cycle(self.config.pattern, stop_event=self._stop_audio)
             
-            # Short pause between burst cycles
-            time.sleep(0.4)
+            # Non-blocking pause between burst cycles; terminates immediately when stopped
+            if self._stop_audio.wait(0.35):
+                break
 
     def _start_audio_ringer(self) -> None:
         """Start repeating audio playback on a daemon thread."""
@@ -81,8 +82,11 @@ class AlarmController:
     def _stop_audio_ringer(self) -> None:
         """Signal and wait for audio thread to stop."""
         self._stop_audio.set()
+        # Purge active OS audio streams immediately
+        if hasattr(self.player, "stop"):
+            self.player.stop()
         if self._audio_thread and self._audio_thread.is_alive():
-            self._audio_thread.join(timeout=1.0)
+            self._audio_thread.join(timeout=0.25)
 
     def _read_user_alarm_action(self, timeout_sec: float = 60.0) -> str:
         """
@@ -95,9 +99,17 @@ class AlarmController:
         if os.name == "nt":
             try:
                 import msvcrt
+                # Flush any stale keystrokes entered before the alarm started ringing
+                while msvcrt.kbhit():
+                    msvcrt.getch()
+
                 while (time.time() - start_time) < timeout_sec:
                     if msvcrt.kbhit():
                         ch = msvcrt.getch()
+                        # Discard Windows multi-byte scan code prefixes (arrows, function keys)
+                        if ch in (b"\x00", b"\xe0") and msvcrt.kbhit():
+                            msvcrt.getch()
+                            continue
                         try:
                             decoded = ch.decode("utf-8", errors="ignore").lower()
                         except Exception:
@@ -108,7 +120,7 @@ class AlarmController:
                             return "dismiss"
                         elif decoded == "q":
                             return "quit"
-                    time.sleep(0.05)
+                    time.sleep(0.01)
                 return "auto_snooze"
             except ImportError:
                 pass
