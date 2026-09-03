@@ -12,7 +12,7 @@ import signal
 import sys
 from typing import List, Optional
 
-from src.alarm_clock.cli import build_parser, parse_cli_args, run_sound_diagnostic
+from src.alarm_clock.cli import parse_cli_args, run_sound_diagnostic
 from src.alarm_clock.controller import AlarmController
 from src.alarm_clock.engine import AlarmConfig
 from src.alarm_clock.parser import parse_alarm_target, parse_duration, TimeParseError

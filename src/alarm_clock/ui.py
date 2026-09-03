@@ -11,7 +11,6 @@ Provides:
 from datetime import datetime
 import os
 import sys
-from typing import Optional
 
 
 # ANSI color codes

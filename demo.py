@@ -16,14 +16,17 @@ Usage:
   python demo.py --all      # Run all demonstrations
 """
 
+import os
 import sys
 import time
 
-from src.alarm_clock.cli import run_sound_diagnostic
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from src.alarm_clock.main import main
 from src.alarm_clock.parser import parse_alarm_target
 from src.alarm_clock.sound import BUILTIN_PATTERNS, SoundPlayer
-from src.alarm_clock.ui import BOLD, CYAN, DIM, GREEN, RED, RESET, YELLOW, init_terminal
+from src.alarm_clock.ui import BOLD, CYAN, GREEN, RED, RESET, init_terminal
 
 
 def demo_countdown():
@@ -109,13 +112,20 @@ def demo_errors():
         (["save", "   ", "10m"], "Whitespace-only preset name"),
     ]
 
+    all_passed = True
     for args, label in error_cases:
         print(f"{BOLD}Testing: {label}{RESET} (Command: alarm {' '.join(args)})")
         exit_code = main(args)
-        assert exit_code != 0, f"Expected non-zero exit code for {label}"
-        print(f"  {GREEN}✓ Rejected with exit code {exit_code}{RESET}\n")
+        if exit_code == 0:
+            print(f"  {RED}✗ FAILED: Expected non-zero error exit code for {label}{RESET}\n")
+            all_passed = False
+        else:
+            print(f"  {GREEN}✓ Rejected safely with exit code {exit_code}{RESET}\n")
 
-    print(f"{GREEN}✓ All error edge cases safely caught without unhandled exceptions.{RESET}\n")
+    if all_passed:
+        print(f"{GREEN}✓ All error edge cases safely caught without unhandled exceptions.{RESET}\n")
+    else:
+        print(f"{RED}✗ Some error test cases failed.{RESET}\n")
 
 
 def main_menu():
