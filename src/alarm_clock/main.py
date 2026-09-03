@@ -8,6 +8,7 @@ Handles:
 - Interactive wizard fallback
 """
 
+from datetime import datetime
 import signal
 import sys
 from typing import List, Optional

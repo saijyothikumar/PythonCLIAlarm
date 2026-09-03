@@ -2,7 +2,7 @@
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![CI Test Suite](https://github.com/saijyothikumar/PythonCLIAlarm/actions/workflows/ci.yml/badge.svg)](https://github.com/saijyothikumar/PythonCLIAlarm/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-30%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-31%20passed-brightgreen.svg)]()
 [![Dependencies](https://img.shields.io/badge/dependencies-zero%20(stdlib%20only)-success.svg)]()
 [![Platform](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey.svg)]()
 

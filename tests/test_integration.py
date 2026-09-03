@@ -53,6 +53,17 @@ class TestAlarmCLIIntegration(unittest.TestCase):
         code_del = main(["delete", "focus"])
         self.assertEqual(code_del, 0)
 
+    @patch("src.alarm_clock.main.AlarmController")
+    def test_direct_alarm_with_pre_alert(self, mock_ctrl):
+        mock_inst = mock_ctrl.return_value
+        code = main(["5s", "-m", "Alarm Clock Video Demo", "-p", "digital", "--pre-alert", "2s"])
+        self.assertEqual(code, 0)
+        self.assertTrue(mock_inst.start.called)
+        config = mock_ctrl.call_args[0][0]
+        self.assertEqual(config.message, "Alarm Clock Video Demo")
+        self.assertEqual(config.pattern, "digital")
+        self.assertEqual(config.pre_alert_seconds, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
